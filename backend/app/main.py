@@ -81,3 +81,50 @@ def health():
 def model_info():
     return {"model_type": type(model).__name__, "number_of_features": len(feature_columns), "sample_feature_columns": feature_columns[:10]}
 
+@app.get("/options")
+def get_options():
+    return {
+        "area_type_options": AREA_TYPE_OPTIONS,
+        "location_options": LOCATION_OPTIONS,
+    }
+
+def create_model_input_row(data: HousePricePredictionInput):
+    # Create an empty row with the same number of features used during training
+    input_row = np.zeros(len(feature_columns))
+
+    # These are the numerical values we can directly place into the row
+    numerical_values = {
+        "total_sqft": data.total_sqft,
+        "bath": data.bath,
+        "balcony": data.balcony,
+        "bhk": data.bhk,
+    }
+
+    # Fill numerical feature values into the correct column positions
+    for feature_name, value in numerical_values.items():
+        feature_index = feature_columns.index(feature_name)
+        input_row[feature_index] = value
+
+    # Validate and encode area type
+    if data.area_type not in AREA_TYPE_OPTIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid area_type. Valid options are: {AREA_TYPE_OPTIONS}"
+        )
+
+    area_type_index = feature_columns.index(data.area_type)
+    input_row[area_type_index] = 1
+
+    # Validate and encode location
+    cleaned_location = data.location.strip()
+
+    if cleaned_location not in LOCATION_OPTIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid location. Please select a location from the available options."
+        )
+
+    location_index = feature_columns.index(cleaned_location)
+    input_row[location_index] = 1
+
+    return input_row
