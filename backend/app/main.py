@@ -128,3 +128,24 @@ def create_model_input_row(data: HousePricePredictionInput):
     input_row[location_index] = 1
 
     return input_row
+
+@app.post("/predict")
+def predict_house_price(data: HousePricePredictionInput):
+    # Convert user-friendly input into model-ready numerical input
+    input_row = create_model_input_row(data)
+
+    # Send the prepared input row to the trained model
+    predicted_price = model.predict([input_row])[0]
+
+    # Return the predicted price as JSON
+    return {
+        "predicted_price_lakhs": round(float(predicted_price), 2),
+        "input_received": {
+            "area_type": data.area_type,
+            "location": data.location,
+            "total_sqft": data.total_sqft,
+            "bath": data.bath,
+            "bhk": data.bhk,
+            "balcony": data.balcony,
+        }
+    }
